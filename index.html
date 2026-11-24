@@ -212,6 +212,7 @@
     #cart-drawer,
     #sort-filter-drawer,
     #policy-modal,
+    #return-modal,
     #admin-modal,
     #auth-modal,
     #auth-modal-sheet,
@@ -304,6 +305,35 @@
     }
     .animate-spin {
       animation: spin 1s linear infinite;
+    }
+    .live-gps-dot {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 0.625rem;
+      height: 0.625rem;
+      flex-shrink: 0;
+    }
+    .live-gps-dot-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 9999px;
+      background-color: #10B981;
+      opacity: 0.75;
+      animation: liveGpsPulse 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+    .live-gps-dot-core {
+      position: relative;
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 9999px;
+      background-color: #10B981;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.85);
+    }
+    @keyframes liveGpsPulse {
+      0% { transform: scale(0.9); opacity: 0.85; }
+      70%, 100% { transform: scale(2.4); opacity: 0; }
     }
 
     /* ==================== 3. LAYOUT, DISPLAY & POSITIONING ==================== */
@@ -615,6 +645,7 @@
     .bg-stone-300\/80 { background-color: rgba(214, 211, 209, 0.8); }
     .bg-stone-800 { background-color: #292524; }
     .bg-amber-50 { background-color: #FFFBEB; }
+    .bg-amber-500 { background-color: #F59E0B; }
     .bg-emerald-50 { background-color: #ECFDF5; }
     .bg-emerald-500 { background-color: #10B981; }
     .bg-rose-50 { background-color: #FFF1F2; }
@@ -768,6 +799,7 @@
     .hover\:bg-stone-100:hover { background-color: #F5F5F4; }
     .hover\:bg-stone-200:hover { background-color: #E7E5E4; }
     .hover\:bg-stone-200\/70:hover { background-color: rgba(231, 229, 228, 0.7); }
+    .hover\:bg-amber-50:hover { background-color: #FFFBEB; }
     .hover\:bg-rose-50:hover { background-color: #FFF1F2; }
     .hover\:bg-white\/75:hover { background-color: rgba(255, 255, 255, 0.75); }
     .hover\:text-white:hover { color: #FFFFFF; }
@@ -1324,6 +1356,44 @@
     </div>
   </div>
 
+  <!-- ==================== 7-DAY ORDER RETURN REQUEST MODAL ==================== -->
+  <div id="return-modal" role="dialog" aria-modal="true" aria-labelledby="return-modal-heading" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 transition-opacity" onclick="handleReturnBackdropClick(event)">
+    <div class="relative w-full max-w-md max-h-[88vh] overflow-y-auto bg-ivory rounded-t-3xl sm:rounded-3xl shadow-luxury-lg border border-stone-200/90 p-6 sm:p-7 space-y-5 fade-up">
+      <div class="flex items-center justify-between border-b border-stone-200/80 pb-3.5">
+        <div>
+          <span class="text-[10px] uppercase tracking-[0.2em] text-champagne-600 font-semibold">7-Day Return Window</span>
+          <h2 id="return-modal-heading" class="font-editorial text-3xl font-bold text-obsidian m-0">Request Return</h2>
+        </div>
+        <button type="button" onclick="closeReturnModal()" aria-label="Close Return Modal" class="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center transition">✕</button>
+      </div>
+
+      <p class="text-xs text-stone-500 m-0">Order: <span id="return-modal-order-code" class="font-mono font-bold text-obsidian"></span></p>
+
+      <form id="return-request-form" onsubmit="submitReturnRequest(event)" novalidate class="space-y-4">
+        <div class="space-y-2">
+          <span class="block text-[10px] uppercase tracking-wider text-stone-500 font-semibold">Select a Reason</span>
+          <div class="flex flex-wrap gap-1.5" id="return-quick-reasons">
+            <button type="button" onclick="selectQuickReturnReason('Damaged bottle or leakage')" class="px-3 py-1.5 rounded-full bg-white border border-stone-200 hover:border-obsidian text-obsidian text-[11px] font-medium transition">Damaged bottle / leakage</button>
+            <button type="button" onclick="selectQuickReturnReason('Wrong perfume received')" class="px-3 py-1.5 rounded-full bg-white border border-stone-200 hover:border-obsidian text-obsidian text-[11px] font-medium transition">Wrong perfume received</button>
+            <button type="button" onclick="selectQuickReturnReason('Missing item from order')" class="px-3 py-1.5 rounded-full bg-white border border-stone-200 hover:border-obsidian text-obsidian text-[11px] font-medium transition">Missing item</button>
+            <button type="button" onclick="selectQuickReturnReason('Broken seal on arrival')" class="px-3 py-1.5 rounded-full bg-white border border-stone-200 hover:border-obsidian text-obsidian text-[11px] font-medium transition">Broken seal</button>
+          </div>
+        </div>
+
+        <div>
+          <label for="return-reason-input" class="block text-[10px] uppercase tracking-wider text-stone-500 mb-1">Return Reason</label>
+          <textarea id="return-reason-input" rows="3" required maxlength="300" placeholder="Select a reason above or describe the issue..." class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-stone-200 text-xs sm:text-sm text-obsidian focus:outline-none focus:border-obsidian resize-none"></textarea>
+        </div>
+
+        <p id="return-modal-error" role="alert" class="hidden text-xs text-rose-600 font-medium m-0"></p>
+
+        <button id="submit-return-btn" type="submit" class="w-full py-3.5 px-6 rounded-full bg-obsidian text-white hover:bg-charcoal active:scale-[0.99] transition text-xs font-semibold uppercase tracking-[0.16em] shadow-luxury disabled:opacity-40">
+          Submit Return Request
+        </button>
+      </form>
+    </div>
+  </div>
+
   <!-- ==================== PROTECTED ADMIN ORDER & INVENTORY MANAGEMENT MODAL ==================== -->
   <div id="admin-modal" role="dialog" aria-modal="true" aria-labelledby="admin-modal-heading" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 transition-opacity" onclick="handleAdminBackdropClick(event)">
     <div class="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-ivory rounded-t-3xl sm:rounded-3xl shadow-luxury-lg border border-stone-200/90 p-5 sm:p-7 space-y-5 fade-up">
@@ -1350,6 +1420,8 @@
             <button type="button" data-admin-status-filter="Dispatched" onclick="selectAdminOrderFilter('Dispatched')" class="px-3 py-1 rounded-full text-[11px] font-medium bg-white border border-stone-200 text-obsidian">Dispatched</button>
             <button type="button" data-admin-status-filter="Shipping" onclick="selectAdminOrderFilter('Shipping')" class="px-3 py-1 rounded-full text-[11px] font-medium bg-white border border-stone-200 text-obsidian">Shipping</button>
             <button type="button" data-admin-status-filter="Delivered" onclick="selectAdminOrderFilter('Delivered')" class="px-3 py-1 rounded-full text-[11px] font-medium bg-white border border-stone-200 text-obsidian">Delivered</button>
+            <button type="button" data-admin-status-filter="Return Requested" onclick="selectAdminOrderFilter('Return Requested')" class="px-3 py-1 rounded-full text-[11px] font-medium bg-white border border-stone-200 text-obsidian whitespace-nowrap">Return Requested</button>
+            <button type="button" data-admin-status-filter="Returned" onclick="selectAdminOrderFilter('Returned')" class="px-3 py-1 rounded-full text-[11px] font-medium bg-white border border-stone-200 text-obsidian">Returned</button>
             <button type="button" data-admin-status-filter="Cancelled" onclick="selectAdminOrderFilter('Cancelled')" class="px-3 py-1 rounded-full text-[11px] font-medium bg-white border border-stone-200 text-obsidian">Cancelled</button>
           </div>
           <button type="button" onclick="fetchAdminOrders(true)" class="px-3 py-1.5 rounded-full border border-stone-300 bg-white hover:border-obsidian text-obsidian text-[11px] font-semibold uppercase tracking-wider transition">Refresh</button>
@@ -1689,8 +1761,8 @@
             </div>
 
             <div>
-              <label for="review-comment-input" class="block text-[10px] uppercase tracking-wider text-stone-500 mb-1">Your Review</label>
-              <textarea id="review-comment-input" rows="3" required maxlength="500" placeholder="Describe the projection, sillage, and dry-down notes..." class="w-full px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs sm:text-sm text-obsidian focus:outline-none focus:border-obsidian resize-none"></textarea>
+              <label for="review-comment-input" class="block text-[10px] uppercase tracking-wider text-stone-500 mb-1">Your Review (Optional)</label>
+              <textarea id="review-comment-input" rows="3" maxlength="500" placeholder="Describe the projection, sillage, and dry-down notes (optional)..." class="w-full px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs sm:text-sm text-obsidian focus:outline-none focus:border-obsidian resize-none"></textarea>
             </div>
 
             <!-- Optional Flacon Photo -->
@@ -1780,12 +1852,9 @@
     <div id="cart-step-2" class="hidden flex-1 flex-col overflow-hidden">
       <form id="checkout-address-form" onsubmit="proceedToCheckoutStep3(event)" novalidate class="flex-1 flex flex-col overflow-hidden">
         <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5">
-          <div class="flex items-center justify-between pb-2 border-b border-stone-200/70">
-            <div>
-              <span class="text-[10px] uppercase tracking-[0.2em] text-champagne-600 font-semibold">Step 2 of 3</span>
-              <h4 class="font-editorial text-2xl font-bold text-obsidian m-0">Delivery Address</h4>
-            </div>
-            <button type="button" onclick="backToCartStep1()" class="text-xs font-medium text-stone-500 hover:text-obsidian underline underline-offset-4">Back to Cart</button>
+          <div class="pb-2 border-b border-stone-200/70">
+            <span class="text-[10px] uppercase tracking-[0.2em] text-champagne-600 font-semibold">Step 2 of 3</span>
+            <h4 class="font-editorial text-2xl font-bold text-obsidian m-0">Delivery Address</h4>
           </div>
           <div>
             <label for="addr-fullname" class="block text-[11px] uppercase tracking-wider text-stone-500 mb-1">Full Name</label>
@@ -1834,12 +1903,9 @@
     <!-- STEP 3: PAYMENT METHOD SELECTION & ORDER CONFIRMATION -->
     <div id="cart-step-3" class="hidden flex-1 flex-col overflow-hidden">
       <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
-        <div class="flex items-center justify-between pb-2 border-b border-stone-200/70">
-          <div>
-            <span class="text-[10px] uppercase tracking-[0.2em] text-champagne-600 font-semibold">Step 3 of 3</span>
-            <h4 class="font-editorial text-2xl font-bold text-obsidian m-0">Payment Method</h4>
-          </div>
-          <button type="button" onclick="backToCheckoutStep2()" class="text-xs font-medium text-stone-500 hover:text-obsidian underline underline-offset-4">← Back to Address</button>
+        <div class="pb-2 border-b border-stone-200/70">
+          <span class="text-[10px] uppercase tracking-[0.2em] text-champagne-600 font-semibold">Step 3 of 3</span>
+          <h4 class="font-editorial text-2xl font-bold text-obsidian m-0">Payment Method</h4>
         </div>
 
         <label class="block p-4 rounded-2xl bg-white border-2 border-obsidian shadow-sm cursor-pointer transition">
@@ -1859,7 +1925,7 @@
           </div>
         </label>
 
-        <div aria-disabled="true" class="p-4 rounded-2xl bg-stone-100/80 border border-stone-200/90 opacity-60 cursor-not-allowed select-none">
+        <div aria-disabled="true" class="p-4 rounded-2xl bg-stone-100/80 border border-stone-200/90 cursor-not-allowed select-none">
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-xl bg-stone-200 text-stone-500 flex items-center justify-center shrink-0">
@@ -1868,11 +1934,14 @@
                 </svg>
               </div>
               <div>
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span class="text-xs sm:text-sm font-semibold text-stone-600">Online Payment - Coming Soon</span>
-                  <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-stone-300/80 text-stone-700">Coming Soon</span>
+                <span class="block text-xs sm:text-sm font-semibold text-stone-600">Online Payment</span>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="live-gps-dot" aria-hidden="true">
+                    <span class="live-gps-dot-ring"></span>
+                    <span class="live-gps-dot-core"></span>
+                  </span>
+                  <span class="text-[11px] font-medium text-emerald-700">Coming soon</span>
                 </div>
-                <span class="block text-[11px] text-stone-400 mt-0.5">UPI, Cards &amp; Netbanking digital checkout gateway</span>
               </div>
             </div>
             <input type="radio" name="zivo-payment-method" disabled class="w-4 h-4" />
@@ -1904,7 +1973,7 @@
       </div>
 
       <div class="p-4 sm:p-5 bg-white border-t border-stone-200/90">
-        <button id="confirm-order-btn" type="button" onclick="confirmAndPlaceOrder()" class="w-full py-3.5 px-6 rounded-full bg-obsidian text-white hover:bg-charcoal active:scale-[0.99] transition text-xs font-semibold uppercase tracking-[0.16em] shadow-luxury disabled:opacity-40 disabled:pointer-events-none">Confirm &amp; Place Order</button>
+        <button id="confirm-order-btn" type="button" onclick="confirmAndPlaceOrder()" class="w-full py-3.5 px-6 rounded-full bg-obsidian text-white hover:bg-charcoal active:scale-[0.99] transition text-xs font-semibold uppercase tracking-[0.16em] shadow-luxury disabled:opacity-40 disabled:pointer-events-none">Place Order</button>
       </div>
     </div>
   </aside>
@@ -3210,6 +3279,11 @@
     let isPolicyModalOpen = false;
     let activePolicyTab = 'faq';
 
+    // 7-Day Return Request Modal State
+    let isReturnModalOpen = false;
+    let activeReturnOrderId = null;
+    let isSubmittingReturn = false;
+
     // 3-Step Cart Checkout, Idempotency, Anti-Spam Cooldowns & Orders State
     const ORDER_SUBMIT_COOLDOWN_MS = 4000;
     const REVIEW_SUBMIT_COOLDOWN_MS = 5000;
@@ -4150,16 +4224,20 @@
       container.innerHTML = filtered.map(order => {
         const safeUuid = escapeHTML(order.id);
         const currentStatus = order.isCancelled ? 'Cancelled' : (order.status || 'Confirmed');
-        const isTerminal = currentStatus === 'Delivered' || currentStatus === 'Cancelled';
-        const allowedStatuses = currentStatus === 'Delivered'
-          ? ['Delivered']
-          : currentStatus === 'Cancelled'
-            ? ['Cancelled']
-            : currentStatus === 'Shipping'
-              ? ['Shipping', 'Delivered', 'Cancelled']
-              : currentStatus === 'Dispatched'
-                ? ['Dispatched', 'Shipping', 'Delivered', 'Cancelled']
-                : ['Confirmed', 'Dispatched', 'Shipping', 'Delivered', 'Cancelled'];
+        const isTerminal = currentStatus === 'Cancelled' || currentStatus === 'Returned';
+        const allowedStatuses = currentStatus === 'Cancelled'
+          ? ['Cancelled']
+          : currentStatus === 'Returned'
+            ? ['Returned']
+            : currentStatus === 'Return Requested'
+              ? ['Return Requested', 'Returned', 'Delivered']
+              : currentStatus === 'Delivered'
+                ? ['Delivered', 'Return Requested', 'Returned']
+                : currentStatus === 'Shipping'
+                  ? ['Shipping', 'Delivered', 'Cancelled']
+                  : currentStatus === 'Dispatched'
+                    ? ['Dispatched', 'Shipping', 'Delivered', 'Cancelled']
+                    : ['Confirmed', 'Dispatched', 'Shipping', 'Delivered', 'Cancelled'];
 
         return `
           <div class="p-4 rounded-2xl bg-white border border-stone-200/90 space-y-3 shadow-sm">
@@ -4172,15 +4250,18 @@
               <span class="font-editorial text-lg font-bold text-obsidian">₹${Number(order.totalPaid).toLocaleString('en-IN')}</span>
             </div>
             <p class="text-[11px] text-stone-500 m-0">${escapeHTML(order.deliveryAddress)}</p>
+            ${order.returnReason ? `
+              <div class="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-700">
+                <strong>Return Reason:</strong> ${escapeHTML(order.returnReason)}
+              </div>
+            ` : ''}
             <div class="text-[11px] text-stone-600 space-y-0.5">
               ${order.items.map(it => `<div>• ${escapeHTML(it.name)}${it.size ? ' (' + escapeHTML(it.size) + ')' : ''} × ${Number(it.qty)}</div>`).join('')}
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
               <select id="admin-status-${safeUuid}" aria-label="Order status for ${escapeHTML(order.orderId)}" ${isTerminal ? 'disabled' : ''} class="px-2.5 py-1.5 rounded-xl bg-ivory border border-stone-200 text-xs text-obsidian disabled:opacity-60">
                 ${allowedStatuses.map(st => `<option value="${st}" ${currentStatus === st ? 'selected' : ''}>${st}</option>`).join('')}
               </select>
-              <input id="admin-carrier-${safeUuid}" type="text" placeholder="Carrier (e.g. BlueDart)" value="${escapeHTML(order.carrierName)}" class="px-2.5 py-1.5 rounded-xl bg-ivory border border-stone-200 text-xs text-obsidian" />
-              <input id="admin-awb-${safeUuid}" type="text" placeholder="Tracking / AWB No." value="${escapeHTML(order.trackingNumber)}" class="px-2.5 py-1.5 rounded-xl bg-ivory border border-stone-200 text-xs text-obsidian" />
               <input id="admin-url-${safeUuid}" type="url" placeholder="https:// tracking URL" value="${escapeHTML(order.trackingUrl)}" class="px-2.5 py-1.5 rounded-xl bg-ivory border border-stone-200 text-xs text-obsidian" />
               <input id="admin-invoice-${safeUuid}" type="url" placeholder="https:// Invoice PDF link" value="${escapeHTML(order.invoiceUrl || '')}" class="px-2.5 py-1.5 rounded-xl bg-ivory border border-stone-200 text-xs text-obsidian" />
               <button type="button" onclick="handleAdminUpdateOrder('${safeUuid}')" class="py-1.5 px-3 rounded-xl bg-obsidian text-white hover:bg-charcoal text-xs font-semibold transition">Update Order</button>
@@ -4191,45 +4272,51 @@
     }
 
     async function handleAdminUpdateOrder(orderUuid) {
-      if (!isAdminUser || !window.supabaseClient) return;
+      if (!isAdminUser || !window.supabaseClient) {
+        showToast('Unauthorized: Admin privileges required.', 'error');
+        return;
+      }
       const statusEl = document.getElementById(`admin-status-${orderUuid}`);
-      const carrierEl = document.getElementById(`admin-carrier-${orderUuid}`);
-      const awbEl = document.getElementById(`admin-awb-${orderUuid}`);
       const urlEl = document.getElementById(`admin-url-${orderUuid}`);
       const invoiceEl = document.getElementById('admin-invoice-' + orderUuid);
       if (!statusEl) return;
 
-      const rawUrlInput = urlEl ? urlEl.value.trim() : '';
+      let rawUrlInput = urlEl ? urlEl.value.trim() : '';
       if (rawUrlInput && !/^https?:\/\//i.test(rawUrlInput)) {
-        showToast('Tracking URL must begin with http:// or https://', 'neutral');
-        return;
+        rawUrlInput = 'https://' + rawUrlInput;
       }
       const rawUrl = rawUrlInput ? sanitizeSafeUrl(rawUrlInput, '') : '';
-
-      const rawInvoiceInput = invoiceEl ? invoiceEl.value.trim() : '';
-      if (rawInvoiceInput && !/^https?:\/\//i.test(rawInvoiceInput)) {
-        showToast('Invoice URL must begin with http:// or https://', 'neutral');
+      if (rawUrlInput && !rawUrl) {
+        showToast('Please enter a valid Tracking URL.', 'error');
         return;
       }
-      const cleanInvoiceUrl = rawInvoiceInput ? sanitizeSafeUrl(rawInvoiceInput, '') : '';
-      const rawInvoiceUrl = cleanInvoiceUrl;
+
+      let rawInvoiceInput = invoiceEl ? invoiceEl.value.trim() : '';
+      if (rawInvoiceInput && !/^https?:\/\//i.test(rawInvoiceInput)) {
+        rawInvoiceInput = 'https://' + rawInvoiceInput;
+      }
+      const rawInvoiceUrl = rawInvoiceInput ? sanitizeSafeUrl(rawInvoiceInput, '') : '';
+      if (rawInvoiceInput && !rawInvoiceUrl) {
+        showToast('Please enter a valid Invoice URL.', 'error');
+        return;
+      }
 
       try {
         const { error } = await window.supabaseClient.rpc('admin_update_order_status', {
           p_order_id: orderUuid,
           p_new_status: statusEl.value,
-          p_carrier_name: carrierEl ? (carrierEl.value.trim() || null) : null,
-          p_tracking_number: awbEl ? (awbEl.value.trim() || null) : null,
+          p_carrier_name: null,
+          p_tracking_number: null,
           p_tracking_url: rawUrl || null,
           p_invoice_url: rawInvoiceUrl || null
         });
         if (error) throw new Error(error.message || 'Failed to update order status.');
-        showToast('Order updated in Supabase', 'gold');
+        showToast('Order updated in Supabase', 'admin');
         await fetchAdminOrders(false);
         await fetchOrdersFromSupabase(false);
         await fetchPerfumesFromSupabase();
       } catch (err) {
-        showToast((err && err.message) ? err.message : 'Unable to update order.', 'neutral');
+        showToast((err && err.message) ? err.message : 'Unable to update order.', 'error');
       }
     }
 
@@ -4737,7 +4824,7 @@
       const photoUrl = sanitizeSafeUrl(raw.photo_url || raw.photoUrl || '', '');
       const createdAt = String(raw.created_at || raw.createdAt || '').trim();
 
-      if (!perfumeId || !reviewer || !comment) return null;
+      if (!perfumeId || !reviewer) return null;
       return {
         id,
         perfumeId,
@@ -5098,13 +5185,6 @@
         return;
       }
 
-      if (commentRaw.length < 5) {
-        const msg = 'Please write a brief review (at least 5 characters).';
-        if (errEl) { errEl.textContent = msg; errEl.classList.remove('hidden'); }
-        showToast(msg, 'neutral');
-        return;
-      }
-
       ensureSupabaseClient();
       if (!window.supabaseClient) {
         const msg = 'Database connection unavailable. Cannot verify or save review.';
@@ -5208,6 +5288,10 @@
         closeImageLightbox();
         return;
       }
+      if (isReturnModalOpen) {
+        closeReturnModal();
+        return;
+      }
       if (isAdminModalOpen) {
         closeAdminModal();
         return;
@@ -5225,6 +5309,17 @@
         return;
       }
       if (isCartOpen) {
+        if (cartStep === 3) {
+          cartStep = 2;
+          syncCartStepVisibility();
+          return;
+        }
+        if (cartStep === 2) {
+          cartStep = 1;
+          syncCartStepVisibility();
+          renderCartDrawer();
+          return;
+        }
         toggleCartDrawer(false, true);
         return;
       }
@@ -5320,7 +5415,7 @@
 
     function syncBodyScrollLock() {
       const modalOpen = Boolean(activeModalPerfumeId);
-      if (isLightboxOpen || modalOpen || isCartOpen || isAuthModalOpen || isPolicyModalOpen || isSortFilterDrawerOpen || isAdminModalOpen) {
+      if (isLightboxOpen || isReturnModalOpen || modalOpen || isCartOpen || isAuthModalOpen || isPolicyModalOpen || isSortFilterDrawerOpen || isAdminModalOpen) {
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
         document.body.style.touchAction = 'none';
@@ -5347,6 +5442,8 @@
         if (e.key === 'Escape') {
           if (isLightboxOpen) {
             closeImageLightbox();
+          } else if (isReturnModalOpen) {
+            closeReturnModal();
           } else if (isAdminModalOpen) {
             closeAdminModal();
           } else if (isPolicyModalOpen) {
@@ -6397,7 +6494,7 @@
                   </div>
                   <span class="text-xs text-amber-500 tracking-tighter" aria-label="${starCount} out of 5 stars">${starsStr}</span>
                 </div>
-                <p class="text-xs text-stone-600 leading-relaxed m-0">${escapeHTML(rev.comment)}</p>
+                ${rev.comment ? `<p class="text-xs text-stone-600 leading-relaxed m-0">${escapeHTML(rev.comment)}</p>` : ''}
                 ${hasPhoto ? `
                   <div class="pt-1">
                     <img src="${escapeHTML(safeRevPhoto)}" alt="${escapeHTML(perfume.name)}${perfume.size ? ' (' + escapeHTML(perfume.size) + ')' : ''} — ${escapeHTML(perfume.category)} Verified Buyer Flacon Photo" width="64" height="64" loading="lazy" decoding="async" onerror="handleImageError(this)" onclick="openImageLightbox(this.src, 'Review Photo')" class="w-16 h-16 rounded-xl object-cover border border-stone-200 shadow-sm cursor-pointer" />
@@ -6553,7 +6650,7 @@
       isCartOpen = Boolean(open);
       if (isCartOpen) {
         if (!wasOpen && !skipHistoryPush) {
-          safePushHistoryState({ view: 'overlay', overlay: 'cart' });
+          safePushHistoryState({ view: 'overlay', overlay: 'cart', cartStep: 1 });
         }
         lastFocusedElementBeforeCart = document.activeElement;
         cartStep = 1;
@@ -6605,13 +6702,16 @@
       if (house) house.value = src.house || '';
     }
 
-    function openCheckoutStep2(asGuest = false) {
+    function openCheckoutStep2(asGuest = false, skipHistoryPush = false) {
       const { detailedItems, totalPayable } = getCartFinancials();
       if (detailedItems.length === 0) {
         showToast('Your cart is empty', 'neutral');
         return;
       }
 
+      if (!skipHistoryPush && cartStep !== 2) {
+        safePushHistoryState({ view: 'overlay', overlay: 'cart', cartStep: 2 });
+      }
       cartStep = 2;
       syncCartStepVisibility();
 
@@ -6727,6 +6827,9 @@
       document.getElementById('step3-subtotal-val').textContent = `₹${retailSubtotal.toLocaleString('en-IN')}`;
       document.getElementById('step3-final-payable').textContent = `₹${totalPayable.toLocaleString('en-IN')}`;
 
+      if (cartStep !== 3) {
+        safePushHistoryState({ view: 'overlay', overlay: 'cart', cartStep: 3 });
+      }
       cartStep = 3;
       syncCartStepVisibility();
       renderHeaderFooterAndBadges();
@@ -7065,11 +7168,15 @@
         };
       }).filter(Boolean);
 
-      const status = ['Confirmed', 'Dispatched', 'Shipping', 'Delivered', 'Cancelled'].includes(row.status)
+      const status = ['Confirmed', 'Dispatched', 'Shipping', 'Delivered', 'Cancelled', 'Return Requested', 'Returned'].includes(row.status)
         ? row.status
         : 'Confirmed';
       const isCancelled = Boolean(row.is_cancelled || status === 'Cancelled');
-      const statusIndex = isCancelled ? 0 : statusToIndex(status);
+      const statusIndex = isCancelled
+        ? 0
+        : (status === 'Return Requested' || status === 'Returned')
+          ? 3
+          : statusToIndex(status);
       const totalPaid = Math.round(Number(row.total_amount ?? row.subtotal_amount ?? row.totalPaid ?? 0) || 0);
 
       return {
@@ -7079,15 +7186,16 @@
         status,
         statusIndex,
         isCancelled,
-        paymentMethod: String(row.payment_method || 'Cash on Delivery (COD)'),
+        paymentMethod: String(row.payment_method || 'Cash on Delivery'),
         recipientName: String(row.customer_name || row.recipientName || ''),
         customerPhone: String(row.customer_phone || ''),
         deliveryAddress: String(row.delivery_address || row.deliveryAddress || ''),
         totalPaid,
-        carrierName: String(row.carrier_name || '').trim(),
-        trackingNumber: String(row.tracking_number || '').trim(),
         trackingUrl: sanitizeSafeUrl(row.tracking_url || '', ''),
         invoiceUrl: sanitizeSafeUrl(row.invoice_url || row.invoiceUrl || '', ''),
+        returnReason: String(row.return_reason || row.returnReason || '').trim(),
+        returnRequestedAt: String(row.return_requested_at || row.returnRequestedAt || ''),
+        returnedAt: String(row.returned_at || row.returnedAt || ''),
         createdAt: String(row.created_at || ''),
         confirmedAt: String(row.confirmed_at || row.created_at || ''),
         dispatchedAt: String(row.dispatched_at || ''),
@@ -7320,7 +7428,7 @@
         isSubmittingOrder = false;
         if (confirmBtn) {
           confirmBtn.disabled = false;
-          confirmBtn.textContent = 'Confirm & Place Order';
+          confirmBtn.textContent = 'Place Order';
         }
       }
     }
@@ -7380,6 +7488,159 @@
       }
     }
 
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+    function isWithinSevenDayReturnWindow(order) {
+      if (!order || order.isCancelled || order.status !== 'Delivered') return false;
+      if (!order.deliveredAt) return false;
+      const deliveredMs = new Date(order.deliveredAt).getTime();
+      if (Number.isNaN(deliveredMs)) return false;
+      return (Date.now() - deliveredMs) <= SEVEN_DAYS_MS;
+    }
+
+    function openReturnModal(orderUuid, skipHistoryPush = false) {
+      const targetKey = String(orderUuid || '').trim();
+      const order = state.orders.find(o => o.id === targetKey || o.orderId === targetKey);
+      if (!order) return;
+      if (!isWithinSevenDayReturnWindow(order)) {
+        showToast('The 7-day return window for this order has expired.', 'warning');
+        return;
+      }
+
+      activeReturnOrderId = order.id;
+      isReturnModalOpen = true;
+      if (!skipHistoryPush) {
+        safePushHistoryState({ view: 'overlay', overlay: 'return' });
+      }
+
+      const codeEl = document.getElementById('return-modal-order-code');
+      if (codeEl) codeEl.textContent = `#${order.orderId}`;
+      const reasonInput = document.getElementById('return-reason-input');
+      if (reasonInput) reasonInput.value = '';
+      document.getElementById('return-modal-error')?.classList.add('hidden');
+
+      const modal = document.getElementById('return-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+      syncBodyScrollLock();
+    }
+    window.openReturnModal = openReturnModal;
+
+    function closeReturnModal() {
+      isReturnModalOpen = false;
+      activeReturnOrderId = null;
+      const modal = document.getElementById('return-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      syncBodyScrollLock();
+    }
+    window.closeReturnModal = closeReturnModal;
+
+    function handleReturnBackdropClick(e) {
+      if (e.target && e.target.id === 'return-modal') {
+        closeReturnModal();
+      }
+    }
+    window.handleReturnBackdropClick = handleReturnBackdropClick;
+
+    function selectQuickReturnReason(reasonText) {
+      const input = document.getElementById('return-reason-input');
+      if (input) {
+        input.value = String(reasonText || '');
+        input.focus();
+      }
+      document.getElementById('return-modal-error')?.classList.add('hidden');
+    }
+    window.selectQuickReturnReason = selectQuickReturnReason;
+
+    async function submitReturnRequest(event) {
+      if (event) event.preventDefault();
+      if (isSubmittingReturn || !activeReturnOrderId) return;
+
+      const errEl = document.getElementById('return-modal-error');
+      const submitBtn = document.getElementById('submit-return-btn');
+      const reason = (document.getElementById('return-reason-input')?.value || '').trim();
+
+      if (reason.length < 3) {
+        const msg = 'Please select or enter a return reason.';
+        if (errEl) { errEl.textContent = msg; errEl.classList.remove('hidden'); }
+        return;
+      }
+
+      ensureSupabaseClient();
+      if (!window.supabaseClient) {
+        const msg = 'Database connection unavailable. Please try again.';
+        if (errEl) { errEl.textContent = msg; errEl.classList.remove('hidden'); }
+        showToast(msg, 'error');
+        return;
+      }
+
+      isSubmittingReturn = true;
+      if (errEl) errEl.classList.add('hidden');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+      }
+
+      try {
+        const deviceGuestToken = getOrCreateGuestOrderToken();
+        const guestToken = state.user.isLoggedIn ? null : deviceGuestToken;
+        const { data, error } = await window.supabaseClient.rpc('request_zivo_return', {
+          p_order_id: activeReturnOrderId,
+          p_guest_token: guestToken,
+          p_reason: reason.slice(0, 300)
+        });
+
+        if (error) {
+          throw new Error(error.message || 'Unable to submit return request.');
+        }
+
+        const updatedOrder = normalizeSupabaseOrderRow(data);
+        if (updatedOrder) {
+          state.orders = state.orders.map(o => (o.id === activeReturnOrderId ? updatedOrder : o));
+        } else {
+          await fetchOrdersFromSupabase(false);
+        }
+
+        closeReturnModal();
+        renderAll();
+        showToast('Return request submitted', 'admin');
+      } catch (err) {
+        const msg = (err && err.message) ? err.message : 'Unable to submit return request.';
+        if (errEl) { errEl.textContent = msg; errEl.classList.remove('hidden'); }
+        showToast(msg, 'error');
+      } finally {
+        isSubmittingReturn = false;
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit Return Request';
+        }
+      }
+    }
+    window.submitReturnRequest = submitReturnRequest;
+
+    function handleOrderTracking(orderUuidOrCode) {
+      const targetKey = String(orderUuidOrCode || '').trim();
+      const order = state.orders.find(o => o.id === targetKey || o.orderId === targetKey);
+      const safeTrackingUrl = order ? sanitizeSafeUrl(order.trackingUrl || '', '') : '';
+      if (safeTrackingUrl) {
+        const link = document.createElement('a');
+        link.href = safeTrackingUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        return;
+      }
+      showToast('Tracking link will be available shortly', 'warning');
+    }
+    window.handleOrderTracking = handleOrderTracking;
+
     function handleOrderInvoice(orderUuidOrCode) {
       const targetKey = String(orderUuidOrCode || '').trim();
       const order = state.orders.find(o => o.id === targetKey || o.orderId === targetKey);
@@ -7394,7 +7655,7 @@
         link.remove();
         return;
       }
-      showToast('Invoice will be available shortly', 'neutral');
+      showToast('Invoice will be available shortly', 'warning');
     }
     window.handleOrderInvoice = handleOrderInvoice;
 
@@ -7434,37 +7695,40 @@
       listEl.innerHTML = state.orders.map((order) => {
         const isCancelled = Boolean(order.isCancelled || order.status === 'Cancelled');
         const isDelivered = !isCancelled && order.status === 'Delivered';
+        const isReturnRequested = !isCancelled && order.status === 'Return Requested';
+        const isReturned = !isCancelled && order.status === 'Returned';
+        const isPostDelivery = isDelivered || isReturnRequested || isReturned;
         const canCustomerCancel = !isCancelled && ['Confirmed', 'Dispatched'].includes(order.status);
+        const canCustomerReturn = isWithinSevenDayReturnWindow(order);
         const statusLabel = isCancelled ? 'Cancelled' : (order.status || 'Confirmed');
 
         const badgeStyle = isCancelled
           ? 'bg-rose-50 text-rose-700 border border-rose-200'
-          : isDelivered
-            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-            : 'bg-champagne-50 text-champagne-700 border border-champagne-300';
+          : isReturnRequested
+            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+            : isReturned
+              ? 'bg-stone-100 text-stone-700 border border-stone-300'
+              : isDelivered
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-champagne-50 text-champagne-700 border border-champagne-300';
 
         const dotStyle = isCancelled
           ? 'bg-rose-500'
-          : isDelivered
-            ? 'bg-emerald-500'
-            : 'bg-champagne-500';
+          : isReturnRequested
+            ? 'bg-amber-500'
+            : isReturned
+              ? 'bg-stone-800'
+              : isDelivered
+                ? 'bg-emerald-500'
+                : 'bg-champagne-500';
 
         const safeOrderUuid = escapeHTML(order.id);
         const safeOrderId = escapeHTML(order.orderId);
-        const safeDate = escapeHTML(formatOrderTimestamp(order.confirmedAt || order.createdAt));
-        const safePayment = escapeHTML(order.paymentMethod || 'Cash on Delivery (COD)');
+        const cleanPaymentMethod = String(order.paymentMethod || 'Cash on Delivery').replace(/\s*\(COD\)/gi, '').trim() || 'Cash on Delivery';
+        const safePayment = escapeHTML(cleanPaymentMethod);
         const safeAddress = escapeHTML(order.deliveryAddress || '');
         const safeRecipient = escapeHTML(order.recipientName || '');
         const safeInvoiceUrl = sanitizeSafeUrl(order.invoiceUrl || '', '');
-
-        const stageTimestamps = [
-          order.confirmedAt ? formatOrderTimestamp(order.confirmedAt) : '',
-          order.dispatchedAt ? formatOrderTimestamp(order.dispatchedAt) : '',
-          order.shippingAt ? formatOrderTimestamp(order.shippingAt) : '',
-          order.deliveredAt ? formatOrderTimestamp(order.deliveredAt) : ''
-        ];
-
-        const hasCarrierDetails = Boolean(order.carrierName || order.trackingNumber || order.trackingUrl);
 
         return `
           <div class="bg-white rounded-3xl border border-stone-200/80 p-5 sm:p-6 shadow-luxury space-y-4">
@@ -7472,7 +7736,6 @@
               <div>
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="font-mono text-xs font-bold text-obsidian bg-stone-100 px-2.5 py-1 rounded-lg">#${safeOrderId}</span>
-                  ${safeDate ? `<span class="text-xs text-stone-400">${safeDate}</span>` : ''}
                 </div>
                 <div class="flex items-center justify-between text-[11px] text-stone-600 font-medium mt-1 mb-0">
                   <span>${safePayment}</span>
@@ -7495,22 +7758,16 @@
                   <button type="button" onclick="cancelOrder('${safeOrderUuid}')" class="text-[11px] px-3 py-1 rounded-full border border-rose-200 text-rose-600 hover:bg-rose-50 font-medium transition" title="Cancel order">
                     Cancel Order
                   </button>
-                ` : isDelivered ? (
-                  safeInvoiceUrl ? `
-                    <a href="${escapeHTML(safeInvoiceUrl)}" target="_blank" rel="noopener noreferrer" class="text-[11px] px-3 py-1 rounded-full border border-stone-300 hover:border-obsidian text-obsidian bg-white font-medium transition" title="Download Invoice">
-                      Invoice
-                    </a>
-                  ` : `
-                    <button type="button" onclick="handleOrderInvoice('${safeOrderUuid}')" class="text-[11px] px-3 py-1 rounded-full border border-stone-300 hover:border-obsidian text-obsidian bg-white font-medium transition" title="Download Invoice">
-                      Invoice
-                    </button>
-                  `
-                ) : ''}
+                ` : canCustomerReturn ? `
+                  <button type="button" onclick="openReturnModal('${safeOrderUuid}')" class="text-[11px] px-3 py-1 rounded-full border border-amber-200 text-amber-700 hover:bg-amber-50 font-medium transition" title="Request Return">
+                    Return
+                  </button>
+                ` : ''}
               </div>
             </div>
 
             <!-- Genuine Tracking Timeline: Confirmed → Dispatched → Shipping → Delivered -->
-            <div class="py-1 space-y-2">
+            <div class="py-1 space-y-3">
               <div class="grid grid-cols-4 gap-2 text-center">
                 ${ORDER_STEPS.map((stepName, sIdx) => {
                   const reached = !isCancelled && sIdx <= order.statusIndex;
@@ -7524,25 +7781,33 @@
                     : reached
                       ? 'font-semibold text-obsidian'
                       : 'text-stone-400';
-                  const tsText = (!isCancelled && reached && stageTimestamps[sIdx]) ? stageTimestamps[sIdx] : '';
 
                   return `
                     <div class="space-y-1">
                       <div class="h-1.5 rounded-full transition-all ${barColor}"></div>
                       <span class="block text-[10px] sm:text-[11px] ${textColor}">${escapeHTML(stepName)}</span>
-                      ${tsText ? `<span class="block text-[9px] text-stone-400 leading-tight">${escapeHTML(tsText)}</span>` : ''}
                     </div>
                   `;
                 }).join('')}
               </div>
 
-              ${hasCarrierDetails ? `
-                <div class="p-3 rounded-2xl bg-ivory border border-stone-200/80 flex flex-wrap items-center justify-between gap-2 text-xs">
-                  <div class="space-x-2">
-                    ${order.carrierName ? `<span class="font-semibold text-obsidian">Carrier: ${escapeHTML(order.carrierName)}</span>` : ''}
-                    ${order.trackingNumber ? `<span class="font-mono text-stone-600">AWB: ${escapeHTML(order.trackingNumber)}</span>` : ''}
-                  </div>
-                  ${sanitizeSafeUrl(order.trackingUrl, '') ? `<a href="${escapeHTML(sanitizeSafeUrl(order.trackingUrl, ''))}" target="_blank" rel="noopener noreferrer" class="text-champagne-700 hover:text-obsidian font-semibold underline">Track Shipment ↗</a>` : ''}
+              ${!isCancelled && (isPostDelivery || order.status === 'Shipping') ? `
+                <div class="flex items-center justify-end">
+                  ${isPostDelivery ? (
+                    safeInvoiceUrl ? `
+                      <a href="${escapeHTML(safeInvoiceUrl)}" target="_blank" rel="noopener noreferrer" class="text-[11px] px-3.5 py-1.5 rounded-full border border-stone-300 hover:border-obsidian text-obsidian bg-white font-semibold transition" title="Download Invoice">
+                        Invoice
+                      </a>
+                    ` : `
+                      <button type="button" onclick="handleOrderInvoice('${safeOrderUuid}')" class="text-[11px] px-3.5 py-1.5 rounded-full border border-stone-300 hover:border-obsidian text-obsidian bg-white font-semibold transition" title="Download Invoice">
+                        Invoice
+                      </button>
+                    `
+                  ) : `
+                    <button type="button" onclick="handleOrderTracking('${safeOrderUuid}')" class="text-[11px] px-3.5 py-1.5 rounded-full border border-stone-300 hover:border-obsidian text-obsidian bg-white font-semibold transition" title="Track Shipment">
+                      Tracking
+                    </button>
+                  `}
                 </div>
               ` : ''}
             </div>
@@ -7553,7 +7818,6 @@
                 const safeItemName = escapeHTML(item.name);
                 const safeItemImg = escapeHTML(resolveOrderItemImage(item));
                 const safeItemSize = escapeHTML(item.size || 'Standard');
-                const linePaid = (Number(item.paidEach) || 0) * (Number(item.qty) || 1);
                 const alreadyReviewed = hasAlreadyReviewedOrderItem(order.id, item.perfumeId);
 
                 return `
@@ -7573,21 +7837,13 @@
                           ? `<button type="button" onclick="openVerifiedReviewForOrderProduct('${safeItemPid}', '${safeOrderUuid}')" class="px-3 py-1 rounded-full border border-obsidian text-obsidian hover:bg-obsidian hover:text-white text-[10px] font-semibold tracking-wider transition">Edit</button>`
                           : `<button type="button" onclick="openVerifiedReviewForOrderProduct('${safeItemPid}', '${safeOrderUuid}')" class="px-3 py-1 rounded-full bg-obsidian text-champagne-300 hover:bg-charcoal text-[10px] font-semibold tracking-wider transition">Review</button>`
                       ) : ''}
-                      <span class="text-xs font-bold text-obsidian">₹${linePaid.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
                 `;
               }).join('')}
             </div>
 
-            <div class="pt-2 border-t border-stone-100 flex items-center justify-between">
-              <span class="text-xs text-stone-500">
-                ${isCancelled
-                  ? `Order Cancelled${order.cancelledAt ? ' on ' + escapeHTML(formatOrderTimestamp(order.cancelledAt)) : ''}`
-                  : isDelivered
-                    ? `Delivered${order.deliveredAt ? ' on ' + escapeHTML(formatOrderTimestamp(order.deliveredAt)) : ''}`
-                    : ''}
-              </span>
+            <div class="pt-2 border-t border-stone-100 flex items-center justify-end">
               <span class="font-editorial text-2xl font-bold ${isCancelled ? 'text-stone-400 line-through' : 'text-obsidian'}">
                 ₹${Number(order.totalPaid).toLocaleString('en-IN')}
               </span>
