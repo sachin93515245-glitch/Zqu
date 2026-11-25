@@ -1356,12 +1356,12 @@
     </div>
   </div>
 
-  <!-- ==================== 7-DAY ORDER RETURN REQUEST MODAL ==================== -->
+  <!-- ==================== 5-DAY ORDER RETURN REQUEST MODAL ==================== -->
   <div id="return-modal" role="dialog" aria-modal="true" aria-labelledby="return-modal-heading" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 transition-opacity" onclick="handleReturnBackdropClick(event)">
     <div class="relative w-full max-w-md max-h-[88vh] overflow-y-auto bg-ivory rounded-t-3xl sm:rounded-3xl shadow-luxury-lg border border-stone-200/90 p-6 sm:p-7 space-y-5 fade-up">
       <div class="flex items-center justify-between border-b border-stone-200/80 pb-3.5">
         <div>
-          <span class="text-[10px] uppercase tracking-[0.2em] text-champagne-600 font-semibold">7-Day Return Window</span>
+          <span class="text-[10px] uppercase tracking-[0.2em] text-champagne-600 font-semibold">5-Day Return Window</span>
           <h2 id="return-modal-heading" class="font-editorial text-3xl font-bold text-obsidian m-0">Request Return</h2>
         </div>
         <button type="button" onclick="closeReturnModal()" aria-label="Close Return Modal" class="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center transition">✕</button>
@@ -3279,7 +3279,7 @@
     let isPolicyModalOpen = false;
     let activePolicyTab = 'faq';
 
-    // 7-Day Return Request Modal State
+    // 5-Day Return Request Modal State
     let isReturnModalOpen = false;
     let activeReturnOrderId = null;
     let isSubmittingReturn = false;
@@ -3992,8 +3992,8 @@
       ]),
       returns: Object.freeze([
         {
-          q: '7-Day Damaged or Transit-Leakage Replacement Guarantee',
-          a: 'If your glass flacon arrives damaged, leaked, or incorrect, notify us within 7 days of delivery at zivosuport@gmail.com or +91 9351524531 with an unboxing photograph for an immediate complimentary replacement.'
+          q: '5-Day Damaged or Transit-Leakage Replacement Guarantee',
+          a: 'If your glass flacon arrives damaged, leaked, or incorrect, notify us within 5 days of delivery at zivosuport@gmail.com or +91 9351524531 with an unboxing photograph for an immediate complimentary replacement.'
         },
         {
           q: 'Can opened or sprayed perfume bottles be returned?',
@@ -7488,22 +7488,22 @@
       }
     }
 
-    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+    const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
 
-    function isWithinSevenDayReturnWindow(order) {
+    function isWithinFiveDayReturnWindow(order) {
       if (!order || order.isCancelled || order.status !== 'Delivered') return false;
       if (!order.deliveredAt) return false;
       const deliveredMs = new Date(order.deliveredAt).getTime();
       if (Number.isNaN(deliveredMs)) return false;
-      return (Date.now() - deliveredMs) <= SEVEN_DAYS_MS;
+      return (Date.now() - deliveredMs) <= FIVE_DAYS_MS;
     }
 
     function openReturnModal(orderUuid, skipHistoryPush = false) {
       const targetKey = String(orderUuid || '').trim();
       const order = state.orders.find(o => o.id === targetKey || o.orderId === targetKey);
       if (!order) return;
-      if (!isWithinSevenDayReturnWindow(order)) {
-        showToast('The 7-day return window for this order has expired.', 'warning');
+      if (!isWithinFiveDayReturnWindow(order)) {
+        showToast('The 5-day return window for this order has expired.', 'warning');
         return;
       }
 
@@ -7699,7 +7699,7 @@
         const isReturned = !isCancelled && order.status === 'Returned';
         const isPostDelivery = isDelivered || isReturnRequested || isReturned;
         const canCustomerCancel = !isCancelled && ['Confirmed', 'Dispatched'].includes(order.status);
-        const canCustomerReturn = isWithinSevenDayReturnWindow(order);
+        const canCustomerReturn = isWithinFiveDayReturnWindow(order);
         const statusLabel = isCancelled ? 'Cancelled' : (order.status || 'Confirmed');
 
         const badgeStyle = isCancelled
