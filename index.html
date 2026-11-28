@@ -230,6 +230,7 @@
     #sort-filter-drawer,
     #policy-modal,
     #return-modal,
+    #cancel-modal,
     #admin-modal,
     #auth-modal,
     #auth-modal-sheet,
@@ -1406,6 +1407,45 @@
 
         <button id="submit-return-btn" type="submit" class="w-full py-3.5 px-6 rounded-full bg-obsidian text-white hover:bg-charcoal active:scale-[0.99] transition text-xs font-semibold uppercase tracking-[0.16em] shadow-luxury disabled:opacity-40">
           Submit Return Request
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== ORDER CANCELLATION REASON MODAL ==================== -->
+  <div id="cancel-modal" role="dialog" aria-modal="true" aria-labelledby="cancel-modal-heading" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 transition-opacity" onclick="handleCancelBackdropClick(event)">
+    <div class="relative w-full max-w-md max-h-[88vh] overflow-y-auto bg-ivory rounded-t-3xl sm:rounded-3xl shadow-luxury-lg border border-stone-200/90 p-6 sm:p-7 space-y-5 fade-up">
+      <div class="flex items-center justify-between border-b border-stone-200/80 pb-3.5">
+        <div>
+          <span class="text-[10px] uppercase tracking-[0.2em] text-champagne-600 font-semibold">Order Cancellation</span>
+          <h2 id="cancel-modal-heading" class="font-editorial text-3xl font-bold text-obsidian m-0">Cancel Order</h2>
+        </div>
+        <button type="button" onclick="closeCancelModal()" aria-label="Close Cancel Modal" class="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center transition">✕</button>
+      </div>
+
+      <p class="text-xs text-stone-500 m-0">Order: <span id="cancel-modal-order-code" class="font-mono font-bold text-obsidian"></span></p>
+
+      <form id="cancel-order-form" onsubmit="submitCancelOrderRequest(event)" novalidate class="space-y-4">
+        <div class="space-y-2">
+          <span class="block text-[10px] uppercase tracking-wider text-stone-500 font-semibold">Select a Reason</span>
+          <div class="flex flex-wrap gap-1.5" id="cancel-quick-reasons">
+            <button type="button" onclick="selectQuickCancelReason('Ordered by mistake')" class="px-3 py-1.5 rounded-full bg-white border border-stone-200 hover:border-obsidian text-obsidian text-[11px] font-medium transition">Ordered by mistake</button>
+            <button type="button" onclick="selectQuickCancelReason('Duplicate order placed')" class="px-3 py-1.5 rounded-full bg-white border border-stone-200 hover:border-obsidian text-obsidian text-[11px] font-medium transition">Duplicate order placed</button>
+            <button type="button" onclick="selectQuickCancelReason('Bought from somewhere else')" class="px-3 py-1.5 rounded-full bg-white border border-stone-200 hover:border-obsidian text-obsidian text-[11px] font-medium transition">Bought from somewhere else</button>
+            <button type="button" onclick="selectQuickCancelReason('Need to change delivery address or items')" class="px-3 py-1.5 rounded-full bg-white border border-stone-200 hover:border-obsidian text-obsidian text-[11px] font-medium transition">Need to change delivery address or items</button>
+            <button type="button" onclick="selectQuickCancelReason('Delivery is taking longer than expected')" class="px-3 py-1.5 rounded-full bg-white border border-stone-200 hover:border-obsidian text-obsidian text-[11px] font-medium transition">Delivery is taking longer than expected</button>
+          </div>
+        </div>
+
+        <div>
+          <label for="cancel-reason-input" class="block text-[10px] uppercase tracking-wider text-stone-500 mb-1">Cancellation Reason</label>
+          <textarea id="cancel-reason-input" rows="3" required maxlength="300" placeholder="Select a reason above or type your cancellation reason..." class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-stone-200 text-xs sm:text-sm text-obsidian focus:outline-none focus:border-obsidian resize-none"></textarea>
+        </div>
+
+        <p id="cancel-modal-error" role="alert" class="hidden text-xs text-rose-600 font-medium m-0"></p>
+
+        <button id="submit-cancel-btn" type="submit" class="w-full py-3.5 px-6 rounded-full bg-obsidian text-white hover:bg-charcoal active:scale-[0.99] transition text-xs font-semibold uppercase tracking-[0.16em] shadow-luxury disabled:opacity-40">
+          Confirm Cancellation
         </button>
       </form>
     </div>
@@ -3307,6 +3347,11 @@
     let activeReturnOrderId = null;
     let isSubmittingReturn = false;
 
+    // Order Cancellation Reason Modal State
+    let isCancelModalOpen = false;
+    let activeCancelOrderId = null;
+    let isSubmittingCancel = false;
+
     // 3-Step Cart Checkout, Idempotency, Anti-Spam Cooldowns & Orders State
     const ORDER_SUBMIT_COOLDOWN_MS = 4000;
     const REVIEW_SUBMIT_COOLDOWN_MS = 5000;
@@ -4273,6 +4318,11 @@
               <span class="font-editorial text-lg font-bold text-obsidian">₹${Number(order.totalPaid).toLocaleString('en-IN')}</span>
             </div>
             <p class="text-[11px] text-stone-500 m-0">${escapeHTML(order.deliveryAddress)}</p>
+            ${(order.isCancelled || order.status === 'Cancelled') ? `
+              <div class="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-[11px] text-rose-700">
+                <strong>Cancel Reason:</strong> ${escapeHTML(order.cancelReason || 'Cancelled by customer')}
+              </div>
+            ` : ''}
             ${order.returnReason ? `
               <div class="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-700">
                 <strong>Return Reason:</strong> ${escapeHTML(order.returnReason)}
@@ -5311,6 +5361,10 @@
         closeImageLightbox();
         return;
       }
+      if (isCancelModalOpen) {
+        closeCancelModal();
+        return;
+      }
       if (isReturnModalOpen) {
         closeReturnModal();
         return;
@@ -5438,7 +5492,7 @@
 
     function syncBodyScrollLock() {
       const modalOpen = Boolean(activeModalPerfumeId);
-      if (isLightboxOpen || isReturnModalOpen || modalOpen || isCartOpen || isAuthModalOpen || isPolicyModalOpen || isSortFilterDrawerOpen || isAdminModalOpen) {
+      if (isLightboxOpen || isCancelModalOpen || isReturnModalOpen || modalOpen || isCartOpen || isAuthModalOpen || isPolicyModalOpen || isSortFilterDrawerOpen || isAdminModalOpen) {
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
         document.body.style.touchAction = 'none';
@@ -5465,6 +5519,8 @@
         if (e.key === 'Escape') {
           if (isLightboxOpen) {
             closeImageLightbox();
+          } else if (isCancelModalOpen) {
+            closeCancelModal();
           } else if (isReturnModalOpen) {
             closeReturnModal();
           } else if (isAdminModalOpen) {
@@ -7230,6 +7286,7 @@
         totalPaid,
         trackingUrl: sanitizeSafeUrl(row.tracking_url || '', ''),
         invoiceUrl: sanitizeSafeUrl(row.invoice_url || row.invoiceUrl || '', ''),
+        cancelReason: String(row.cancel_reason || row.cancelReason || '').trim(),
         returnReason: String(row.return_reason || row.returnReason || '').trim(),
         returnRequestedAt: String(row.return_requested_at || row.returnRequestedAt || ''),
         returnedAt: String(row.returned_at || row.returnedAt || ''),
@@ -7478,29 +7535,121 @@
     }
 
     /**
-     * Requests order cancellation via Supabase RPC `cancel_zivo_order`
-     * ONLY when allowed by the order's current status (`Confirmed` or `Dispatched`).
+     * Opens the Order Cancellation Reason Modal for eligible orders (`Confirmed` or `Dispatched`).
      * Customers can NEVER advance order status or mark an order Delivered.
      */
-    async function cancelOrder(orderUuidOrCode) {
+    function cancelOrder(orderUuidOrCode) {
       const targetKey = String(orderUuidOrCode || '').trim();
       const order = state.orders.find(o => o.id === targetKey || o.orderId === targetKey);
       if (!order) return;
 
       if (order.isCancelled || order.status === 'Cancelled') {
-        showToast('Order is already cancelled', 'neutral');
+        showToast('Order is already cancelled', 'warning');
         return;
       }
 
       if (!['Confirmed', 'Dispatched'].includes(order.status)) {
-        showToast(`Orders in ${order.status} status can no longer be cancelled`, 'neutral');
+        showToast(`Orders in ${order.status} status can no longer be cancelled`, 'warning');
+        return;
+      }
+
+      openCancelModal(order.id);
+    }
+    window.cancelOrder = cancelOrder;
+
+    function openCancelModal(orderUuid, skipHistoryPush = false) {
+      const targetKey = String(orderUuid || '').trim();
+      const order = state.orders.find(o => o.id === targetKey || o.orderId === targetKey);
+      if (!order) return;
+
+      if (order.isCancelled || order.status === 'Cancelled' || !['Confirmed', 'Dispatched'].includes(order.status)) {
+        showToast(`Orders in ${order.status} status can no longer be cancelled`, 'warning');
+        return;
+      }
+
+      activeCancelOrderId = order.id;
+      isCancelModalOpen = true;
+      if (!skipHistoryPush) {
+        safePushHistoryState({ view: 'overlay', overlay: 'cancel' });
+      }
+
+      const codeEl = document.getElementById('cancel-modal-order-code');
+      if (codeEl) codeEl.textContent = `#${order.orderId}`;
+      const reasonInput = document.getElementById('cancel-reason-input');
+      if (reasonInput) reasonInput.value = '';
+      document.getElementById('cancel-modal-error')?.classList.add('hidden');
+
+      const modal = document.getElementById('cancel-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+      syncBodyScrollLock();
+    }
+    window.openCancelModal = openCancelModal;
+
+    function closeCancelModal() {
+      isCancelModalOpen = false;
+      activeCancelOrderId = null;
+      const modal = document.getElementById('cancel-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      syncBodyScrollLock();
+    }
+    window.closeCancelModal = closeCancelModal;
+
+    function handleCancelBackdropClick(e) {
+      if (e.target && e.target.id === 'cancel-modal') {
+        closeCancelModal();
+      }
+    }
+    window.handleCancelBackdropClick = handleCancelBackdropClick;
+
+    function selectQuickCancelReason(reasonText) {
+      const input = document.getElementById('cancel-reason-input');
+      if (input) {
+        input.value = String(reasonText || '');
+        input.focus();
+      }
+      document.getElementById('cancel-modal-error')?.classList.add('hidden');
+    }
+    window.selectQuickCancelReason = selectQuickCancelReason;
+
+    async function submitCancelOrderRequest(event) {
+      if (event) event.preventDefault();
+      if (isSubmittingCancel || !activeCancelOrderId) return;
+
+      const order = state.orders.find(o => o.id === activeCancelOrderId || o.orderId === activeCancelOrderId);
+      if (!order) {
+        closeCancelModal();
+        return;
+      }
+
+      const errEl = document.getElementById('cancel-modal-error');
+      const submitBtn = document.getElementById('submit-cancel-btn');
+      const reason = (document.getElementById('cancel-reason-input')?.value || '').trim().slice(0, 300);
+
+      if (reason.length < 3) {
+        const msg = 'Please select or enter a cancellation reason (at least 3 characters).';
+        if (errEl) { errEl.textContent = msg; errEl.classList.remove('hidden'); }
         return;
       }
 
       ensureSupabaseClient();
       if (!window.supabaseClient) {
-        showToast('Database connection unavailable. Could not cancel order.', 'neutral');
+        const msg = 'Database connection unavailable. Could not cancel order.';
+        if (errEl) { errEl.textContent = msg; errEl.classList.remove('hidden'); }
+        showToast(msg, 'error');
         return;
+      }
+
+      isSubmittingCancel = true;
+      if (errEl) errEl.classList.add('hidden');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Cancelling...';
       }
 
       try {
@@ -7509,7 +7658,7 @@
         const rpcRes = await window.supabaseClient.rpc('cancel_zivo_order', {
           p_order_id: order.id,
           p_guest_token: guestToken,
-          p_reason: 'Cancelled by customer'
+          p_reason: reason
         });
 
         if (rpcRes.error) {
@@ -7518,19 +7667,29 @@
 
         const updatedOrder = normalizeSupabaseOrderRow(rpcRes.data);
         if (updatedOrder) {
+          if (!updatedOrder.cancelReason) updatedOrder.cancelReason = reason;
           state.orders = state.orders.map(o => (o.id === order.id ? updatedOrder : o));
         } else {
           await fetchOrdersFromSupabase(false);
         }
 
+        closeCancelModal();
         fetchPerfumesFromSupabase();
         renderAll();
-        showToast(`Order #${order.orderId} Cancelled`, 'neutral');
+        showToast(`Order #${order.orderId} Cancelled`, 'admin');
       } catch (err) {
         const msg = (err && err.message) ? err.message : 'Unable to cancel order.';
-        showToast(msg, 'neutral');
+        if (errEl) { errEl.textContent = msg; errEl.classList.remove('hidden'); }
+        showToast(msg, 'error');
+      } finally {
+        isSubmittingCancel = false;
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Confirm Cancellation';
+        }
       }
     }
+    window.submitCancelOrderRequest = submitCancelOrderRequest;
 
     const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
 
@@ -7788,6 +7947,11 @@
                 ${safeAddress ? `
                   <p class="text-[11px] text-stone-400 mt-0.5 mb-0">
                     Delivering to: ${safeRecipient ? `${safeRecipient} — ` : ''}${safeAddress}
+                  </p>
+                ` : ''}
+                ${isCancelled && order.cancelReason ? `
+                  <p class="text-[11px] text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-2.5 py-1 mt-1.5 mb-0 inline-block">
+                    <span class="font-semibold">Reason:</span> ${escapeHTML(order.cancelReason)}
                   </p>
                 ` : ''}
               </div>
